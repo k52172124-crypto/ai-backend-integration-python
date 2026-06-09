@@ -47,3 +47,32 @@ class ChatResponse(BaseModel):
 
     answer: str = Field(..., description="모델 응답 본문")
     model: str = Field(..., description="실제 사용된 모델 식별자")
+
+
+class IngestResponse(BaseModel):
+    """PDF 인제스트 결과 응답.
+
+    업로드한 문서가 몇 개의 청크로 나뉘어 벡터 DB에 저장됐는지 알려줍니다.
+    """
+
+    filename: str = Field(..., description="업로드된 파일명")
+    pages: int = Field(..., description="PDF에서 추출된 페이지 수")
+    chunks_added: int = Field(..., description="벡터 DB에 추가된 청크 수")
+    total_chunks: int = Field(..., description="저장소 전체 청크 수(누적)")
+
+
+class RagRequest(BaseModel):
+    """RAG /chat/rag 요청 본문.
+
+    업로드된 사내 문서(벡터 DB)에서 근거를 찾아 답할 '질문'을 받습니다.
+    """
+
+    question: str = Field(
+        ..., min_length=1, max_length=500, description="사내 문서에 대한 질문"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {"question": "문의는 어디로 하면 되나요?"}
+        }
+    }

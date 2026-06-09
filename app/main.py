@@ -13,7 +13,7 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from .routers import chat_rag, ingest
 from .errors import handle_unexpected
 from .middleware import add_process_time
 from .routers import chat_crew, chat_langchain
