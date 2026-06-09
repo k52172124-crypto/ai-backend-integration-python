@@ -133,4 +133,8 @@ def get_retriever() -> VectorStoreRetriever:
     settings = get_rag_settings()
     return get_vectorstore().as_retriever(
         search_kwargs={"k": settings.rag_top_k},
+<<<<<<< HEAD
     )
+=======
+    )
+>>>>>>> 7d2e4174509c0455ccb02294115c35f736377fdc

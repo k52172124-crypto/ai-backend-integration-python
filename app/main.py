@@ -5,6 +5,8 @@
 - POST /echo          : Pydantic 검증 시연
 - POST /chat          : LangChain 단일 체인
 - POST /chat/crew     : CrewAI 멀티에이전트
+- POST /rag/ingest    : PDF 업로드 → 벡터 DB 적재 (RAG 전처리)
+- POST /rag/chat      : CrewAI RAG 에이전트 (벡터 DB 검색 후 답변)
 - GET  /docs          : Swagger UI
 - GET  /redoc         : ReDoc
 """
@@ -17,6 +19,7 @@ from .routers import chat_rag, ingest
 from .errors import handle_unexpected
 from .middleware import add_process_time
 from .routers import chat_crew, chat_langchain
+from .routers import chat_rag, ingest  # RAG (심화) — 안 쓰면 이 줄을 지우세요
 from .schemas import ChatRequest, ChatResponse
 
 logging.basicConfig(
@@ -46,6 +49,10 @@ app.add_exception_handler(Exception, handle_unexpected)
 # 라우터
 app.include_router(chat_langchain.router)
 app.include_router(chat_crew.router)
+
+# RAG (심화) — PDF 업로드/검색. 기본 과정만 할 거면 이 블록을 통째로 지우세요.
+app.include_router(ingest.router)
+app.include_router(chat_rag.router)
 
 
 @app.get("/health", tags=["meta"])

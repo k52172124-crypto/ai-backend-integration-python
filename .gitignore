@@ -7,3 +7,6 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+
+# RAG 벡터 DB (POST /ingest 가 생성)
+chroma_db/

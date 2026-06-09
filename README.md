@@ -36,6 +36,8 @@ uv run uvicorn app.main:app --reload
 | POST | `/echo` | Pydantic 검증 시연 | Day1 B3 |
 | POST | `/chat` | LangChain 단일 체인 호출 (본문: `prompt`) | Day1 B5, Day5에서 Spring이 호출 |
 | POST | `/chat/crew` | CrewAI Researcher+Writer 순차 협업 (본문: `topic`) | Day1 B6 |
+| POST | `/rag/ingest` | PDF 업로드 → 청킹·임베딩 → 벡터 DB 적재 (multipart `file`) | RAG 전처리 |
+| POST | `/rag/chat` | CrewAI 인사팀 에이전트가 벡터 DB 검색 후 답변 (본문: `question`) | RAG 질의 |
 
 > `/chat`은 자유 질문(`prompt`), `/chat/crew`는 리서치 주제(`topic`)를 받습니다. 엔드포인트마다 의미에 맞는 별도 스키마(`ChatRequest`, `CrewRequest`)를 사용합니다.
 > 사용자 식별은 Spring 게이트웨이가 JWT로 처리하므로 Python 요청 본문에는 `user_id`가 없습니다. (Spring이 보내는 추가 필드는 Pydantic이 무시합니다.)
@@ -67,18 +69,58 @@ curl -X POST http://localhost:8000/chat/crew \
 
 응답 헤더에 `X-Process-Time`(초)이 자동 추가됩니다.
 
+## RAG (PDF 업로드 → 검색)
+
+PDF를 업로드하면 청킹·임베딩 후 로컬 벡터 DB(`./chroma_db`)에 누적 저장되고,
+`/rag/chat`에서 CrewAI 인사팀 에이전트가 그 문서를 검색해 근거 기반으로 답합니다.
+벡터 DB는 `persist_directory`라 서버를 재시작해도 유지됩니다.
+
+> **테스트용 PDF 샘플**은 이 레포의 `samples/` 폴더에 포함되어 있습니다.
+> (계약서·매뉴얼·정책·리포트 등 12개: `sample_contract_01.pdf`, `sample_manual_01.pdf`, `sample_policy_01.pdf`, `sample_report_01.pdf` …)
+
+**1) 문서 업로드 (인제스트)**
+
+```bash
+curl -X POST http://localhost:8000/rag/ingest \
+  -F 'file=@samples/sample_policy_01.pdf'
+```
+
+응답 예시:
+
+```json
+{
+  "filename": "sample_policy_01.pdf",
+  "pages": 12,
+  "chunks_added": 34,
+  "total_chunks": 34
+}
+```
+
+**2) 질의 (RAG)**
+
+```bash
+curl -X POST http://localhost:8000/rag/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"문의는 어디로 하면 되나요?"}'
+```
+
+> 업로드된 청크에는 출처 메타데이터(`source`=파일명, `page`=페이지)가 함께 저장되어
+> 에이전트가 근거를 인용할 수 있습니다. Swagger UI(`/docs`)의 `/rag/ingest`에서 파일 업로드도 가능합니다.
+
 ## 디렉터리 구조
 
 ```
 app/
 ├── main.py             FastAPI 인스턴스, 미들웨어·예외 핸들러 등록
 ├── schemas.py          Pydantic v2 요청·응답 스키마
-├── dependencies.py     Settings, get_llm() with @lru_cache
+├── dependencies.py     Settings, get_llm()/get_embeddings()/get_vectorstore()/get_retriever()
 ├── middleware.py       X-Process-Time 헤더 미들웨어
 ├── errors.py           500 전역 핸들러
 └── routers/
     ├── chat_langchain.py   POST /chat — ChatOpenAI + ainvoke
-    └── chat_crew.py        POST /chat/crew — CrewAI + kickoff_async
+    ├── chat_crew.py        POST /chat/crew — CrewAI + kickoff_async
+    ├── ingest.py           POST /rag/ingest — PDF 업로드 → 청킹·임베딩 → Chroma 적재
+    └── chat_rag.py         POST /rag/chat — CrewAI 검색 도구 에이전트 + kickoff_async
 tests/
 └── test_health.py      OpenAI 키 없이도 통과하는 최소 검증
 ```

@@ -85,4 +85,8 @@ async def ingest(
     # 블로킹 작업(파싱·임베딩)은 스레드풀에서 실행해 이벤트 루프를 막지 않습니다
     return await run_in_threadpool(
         _ingest_pdf, data, filename, get_vectorstore(), settings
+<<<<<<< HEAD
     )
+=======
+    )
+>>>>>>> 7d2e4174509c0455ccb02294115c35f736377fdc

@@ -75,4 +75,8 @@ class RagRequest(BaseModel):
         "json_schema_extra": {
             "example": {"question": "문의는 어디로 하면 되나요?"}
         }
+<<<<<<< HEAD
     }
+=======
+    }
+>>>>>>> 7d2e4174509c0455ccb02294115c35f736377fdc
